@@ -3,7 +3,6 @@ import { ApiBQService } from '../services/api-bq.service';
 import { Router } from '@angular/router';
 
 
-
 @Component({
   selector: 'app-orders',
   templateUrl: './orders.component.html',
@@ -14,26 +13,24 @@ export class OrdersComponent {
   @Output() title:any = "Orders"
 
   ordersArray:any[] = []
-  // cheffOrdersArray:any [] = []
+  preparingTime: any;
+  verifyUser() {
+    const sessionUser = sessionStorage.getItem('user')
+    if (sessionUser === 'cheff') { return 'none' } else {return 'block'}
+  }
 
 
 
   // Para cargar los productos desde la API
   constructor(private api: ApiBQService, private router: Router) {
     this.getOrdersArray();
-
   }
 
   getOrdersArray(){
     this.api.getOrders().subscribe({
       next: (data: any) => {
         this.ordersArray = data;
-        // data.map((order: any) => {
-        //   order.status === 'pending' || order.status === 'delivering' ? this.cheffOrdersArray.push(order) :null })
-
-
         console.log(data);
-
       }
     })
   }
@@ -50,24 +47,32 @@ export class OrdersComponent {
     })
   }
 
-  updateOrder(id:number, value:string ) {
+  updateOrder(order:any, value:string ) {
     let update = {
       status: value,
-      dateProcessed: ""
+      datetimeProcessed: ""
     }
 
-    update.dateProcessed  = new Date().toLocaleString();
-    // this.cheffStatus()
-    console.log(id, typeof(id));
-    this.updateApiOrder(id, update)
+    update.datetimeProcessed  = new Date().toLocaleString();
+
+    this.updateApiOrder(order.id, update)
+
+    console.log(order.id, typeof(order.id));
+    // Actualizar la propiedad datetimeProcessed en el objeto order
+    order.datetimeProcessed = update.datetimeProcessed;
+    // Calcular el nuevo tiempo de preparación
+    this.preparingTime = this.calcPreparingTime(order);
   }
 
-  // Fx que resta dateProcessed con dataEntry, probar convirtiendolo en numero.
-  // Definir variable en cero y asignar la hora de creacion y luego actualizar cuando se cree el date processed.
-  // si no, que inicie en 00:00 y se actualice la resta al cambio de status
+  calcPreparingTime(order : any) {
+    const timeCreated = Date.parse(order.dataEntry); // Obtener tiempo en milisegundos
+    const timeProcessed = Date.parse(order.datetimeProcessed); // Obtener tiempo en milisegundos
+    const timeDelivered = timeProcessed - timeCreated; // Calcular diferencia en milisegundos
 
-  // cheffStatus(status:string) {
-  //   if (status === 'pending' || status === 'delivering') {return true} else {return false}
-  // }
+    // Convertir tiempo transcurrido de milisegundos a minutos
+    const minutes = Math.floor(timeDelivered / (1000 * 60));
 
+    if (isNaN(minutes)) { return 0
+    } else { return minutes}
+  }
 }
